@@ -51,12 +51,14 @@ namespace dkxce
         public static bool use_ovelay = false;
         public static bool use_preview = true;
         public static bool use_virtcam = true;
+        public static int use_method = 0;
+        public static int ycbcr_color = -9109505;
         public static System.Drawing.Color background_color = System.Drawing.Color.Black;
 
         public static bool chromakey_remove = false;
         public static int chromakey_velocity = 8;    // recommended value: 8
         public static int chromakey_treshold = 60;   // recommended value: 96
-        public static ChromakeyRemover.Channel chromakey_channel = ChromakeyRemover.Channel.Green;
+        public static RGBChromakeyRemover.Channel chromakey_channel = RGBChromakeyRemover.Channel.Green;
         
         public static int virtualcam_fps = 25;
         public static int realcam_num = 0;       
@@ -83,13 +85,15 @@ namespace dkxce
         public static void ChangeValue(string name, object value)
         {
             if (string.IsNullOrEmpty(name)) return;
+            if (name == "ycbcr_color") ycbcr_color = (int)value;
+            if (name == "method") use_method = (int)value;
             if (name == "use_virtcam") use_virtcam = (bool)value;
             if (name == "use_preview") use_preview = (bool)value;
             if (name == "ovelay") use_ovelay = (bool)value;
             if (name == "chromakey_remove") chromakey_remove = (bool)value;
             if (name == "velocity") chromakey_velocity = (int)value;
             if (name == "treshold") chromakey_treshold = (int)value;
-            if (name == "channel") chromakey_channel = (ChromakeyRemover.Channel)(int)value;            
+            if (name == "channel") chromakey_channel = (RGBChromakeyRemover.Channel)(int)value;            
             if (name == "use_background") use_background = (bool)value;
             if (name == "background_color") background_color = (System.Drawing.Color)value;
             if (name == "background")
@@ -222,7 +226,10 @@ namespace dkxce
                 // Remove Background & Get Image Data
                 if (chromakey_remove)
                 {
-                    (width, height, raw_data) = ChromakeyRemover.RemoveChromaKey2Bytes(img, chromakey_velocity, chromakey_treshold, chromakey_channel);
+                    if (use_method == 1)
+                        (width, height, raw_data) = YCbCrChromakeyRemover.RemoveChromaKey2Bytes(img, chromakey_velocity, chromakey_treshold, System.Drawing.Color.FromArgb(ycbcr_color));
+                    else
+                        (width, height, raw_data) = RGBChromakeyRemover.RemoveChromaKey2Bytes(img, chromakey_velocity, chromakey_treshold, chromakey_channel);                    
                 }
                 else // Get Image Data
                 {
@@ -282,7 +289,7 @@ namespace dkxce
                 };
             };
 
-            try { akvcamproc.Kill(); } catch { };
+            try { if(akvcamproc != null) akvcamproc.Kill(); } catch { };
         }
 
         public static System.Drawing.Image GetPreview()

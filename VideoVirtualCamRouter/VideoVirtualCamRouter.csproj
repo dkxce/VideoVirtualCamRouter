@@ -91,7 +91,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CameraDevice.cs" />
-    <Compile Include="ChromakeyRemover.cs" />
+    <Compile Include="RGBChromakeyRemover.cs" />
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>
     </Compile>

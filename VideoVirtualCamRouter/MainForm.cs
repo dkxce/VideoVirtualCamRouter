@@ -29,6 +29,7 @@ namespace VideoVirtualCamRouter
             ReloadBackgroundImage();
 
             if (destCamBox.Items.Count > 0) button3.Enabled = false;
+            methBox.SelectedIndex = 0;
         }
 
         public static bool IsAdministrator()
@@ -282,7 +283,6 @@ namespace VideoVirtualCamRouter
             };
 
             string akvCamMan = GetAkvCamManager();
-            string table = null;
             string res = null;
             string deviceName = "dkxceVirtualCamera0";
             try { res = RunConsoleAndReadOutput(akvCamMan, $"add-device \"{deviceName}\"").Trim(); } catch { return; };
@@ -388,6 +388,23 @@ namespace VideoVirtualCamRouter
         private void chbUVC_CheckedChanged(object sender, EventArgs e)
         {
             dkxce.RealCamToVirtualCamRouter.ChangeValue("use_virtcam", chbUVC.Checked); 
+        }
+
+        private void methBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            dkxce.RealCamToVirtualCamRouter.ChangeValue("method", methBox.SelectedIndex);
+            panel2.Visible = label16.Visible = button5.Visible = methBox.SelectedIndex == 1;
+            chromaBox.Enabled = methBox.SelectedIndex != 1;
+        }
+
+        private void button5_Click(object sender, EventArgs e)
+        {
+            colorDialog1.Color = panel2.BackColor;
+            if (colorDialog1.ShowDialog() == DialogResult.OK)
+            {
+                panel2.BackColor = colorDialog1.Color;
+                dkxce.RealCamToVirtualCamRouter.ChangeValue("ycbcr_color", colorDialog1.Color.ToArgb());
+            };
         }
     }
 }

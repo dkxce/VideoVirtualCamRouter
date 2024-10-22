@@ -78,6 +78,11 @@
             this.button4 = new System.Windows.Forms.Button();
             this.chbUVC = new System.Windows.Forms.CheckBox();
             this.label14 = new System.Windows.Forms.Label();
+            this.methBox = new System.Windows.Forms.ComboBox();
+            this.label15 = new System.Windows.Forms.Label();
+            this.panel2 = new System.Windows.Forms.Panel();
+            this.button5 = new System.Windows.Forms.Button();
+            this.label16 = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.bgImage)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.velBar)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.trsBar)).BeginInit();
@@ -221,9 +226,9 @@
             this.label6.AutoSize = true;
             this.label6.Location = new System.Drawing.Point(23, 267);
             this.label6.Name = "label6";
-            this.label6.Size = new System.Drawing.Size(58, 16);
+            this.label6.Size = new System.Drawing.Size(82, 16);
             this.label6.TabIndex = 16;
-            this.label6.Text = "Velocity:";
+            this.label6.Text = "Min treshold:";
             // 
             // velBar
             // 
@@ -241,9 +246,9 @@
             this.label7.AutoSize = true;
             this.label7.Location = new System.Drawing.Point(23, 318);
             this.label7.Name = "label7";
-            this.label7.Size = new System.Drawing.Size(64, 16);
+            this.label7.Size = new System.Drawing.Size(86, 16);
             this.label7.TabIndex = 18;
-            this.label7.Text = "Treshold:";
+            this.label7.Text = "Max treshold:";
             // 
             // trsBar
             // 
@@ -542,7 +547,7 @@
             this.chbMJpeg.AutoSize = true;
             this.chbMJpeg.Enabled = false;
             this.chbMJpeg.Location = new System.Drawing.Point(113, 366);
-            this.chbMJpeg.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.chbMJpeg.Margin = new System.Windows.Forms.Padding(4);
             this.chbMJpeg.Name = "chbMJpeg";
             this.chbMJpeg.Size = new System.Drawing.Size(18, 17);
             this.chbMJpeg.TabIndex = 32;
@@ -600,7 +605,7 @@
             this.chbUVC.Checked = true;
             this.chbUVC.CheckState = System.Windows.Forms.CheckState.Checked;
             this.chbUVC.Location = new System.Drawing.Point(1065, 17);
-            this.chbUVC.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.chbUVC.Margin = new System.Windows.Forms.Padding(4);
             this.chbUVC.Name = "chbUVC";
             this.chbUVC.Size = new System.Drawing.Size(145, 20);
             this.chbUVC.TabIndex = 37;
@@ -618,11 +623,70 @@
             this.label14.TabIndex = 38;
             this.label14.Text = "(Danger: It takes a lot of memory!)";
             // 
-            // Form1
+            // methBox
+            // 
+            this.methBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.methBox.FormattingEnabled = true;
+            this.methBox.Items.AddRange(new object[] {
+            "RGB",
+            "YCbCr"});
+            this.methBox.Location = new System.Drawing.Point(347, 228);
+            this.methBox.Name = "methBox";
+            this.methBox.Size = new System.Drawing.Size(104, 24);
+            this.methBox.TabIndex = 39;
+            this.methBox.SelectedIndexChanged += new System.EventHandler(this.methBox_SelectedIndexChanged);
+            // 
+            // label15
+            // 
+            this.label15.AutoSize = true;
+            this.label15.Location = new System.Drawing.Point(286, 233);
+            this.label15.Name = "label15";
+            this.label15.Size = new System.Drawing.Size(55, 16);
+            this.label15.TabIndex = 40;
+            this.label15.Text = "Method:";
+            // 
+            // panel2
+            // 
+            this.panel2.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(116)))), ((int)(((byte)(255)))), ((int)(((byte)(255)))));
+            this.panel2.Location = new System.Drawing.Point(541, 228);
+            this.panel2.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.panel2.Name = "panel2";
+            this.panel2.Size = new System.Drawing.Size(30, 23);
+            this.panel2.TabIndex = 41;
+            this.panel2.Visible = false;
+            // 
+            // button5
+            // 
+            this.button5.Location = new System.Drawing.Point(577, 227);
+            this.button5.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button5.Name = "button5";
+            this.button5.Size = new System.Drawing.Size(41, 24);
+            this.button5.TabIndex = 42;
+            this.button5.Text = "...";
+            this.button5.UseVisualStyleBackColor = true;
+            this.button5.Visible = false;
+            this.button5.Click += new System.EventHandler(this.button5_Click);
+            // 
+            // label16
+            // 
+            this.label16.AutoSize = true;
+            this.label16.Location = new System.Drawing.Point(457, 232);
+            this.label16.Name = "label16";
+            this.label16.Size = new System.Drawing.Size(78, 16);
+            this.label16.TabIndex = 43;
+            this.label16.Text = "Mask Color:";
+            this.label16.Visible = false;
+            // 
+            // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1261, 425);
+            this.Controls.Add(this.label16);
+            this.Controls.Add(this.button5);
+            this.Controls.Add(this.panel2);
+            this.Controls.Add(this.label15);
+            this.Controls.Add(this.methBox);
             this.Controls.Add(this.label14);
             this.Controls.Add(this.chbUVC);
             this.Controls.Add(this.button4);
@@ -659,7 +723,7 @@
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.MaximizeBox = false;
-            this.Name = "Form1";
+            this.Name = "MainForm";
             this.Text = "Virtual Video Cam Router by dkxce";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
             this.Load += new System.EventHandler(this.Form1_Load);
@@ -729,6 +793,11 @@
         private System.Windows.Forms.Button button4;
         private System.Windows.Forms.CheckBox chbUVC;
         private System.Windows.Forms.Label label14;
+        private System.Windows.Forms.ComboBox methBox;
+        private System.Windows.Forms.Label label15;
+        private System.Windows.Forms.Panel panel2;
+        private System.Windows.Forms.Button button5;
+        private System.Windows.Forms.Label label16;
     }
 }
 
