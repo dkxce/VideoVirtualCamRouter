@@ -237,9 +237,17 @@ namespace dkxce
                     else if (use_method == 5)
                         (width, height, raw_data) = LABChromakeyRemover.RemoveChromaKey2Bytes(img, chromakey_treshold, System.Drawing.Color.FromArgb(ycbcr_color), null, false, 0);
                     else if (use_method == 6)
-                        (width, height, raw_data) = LABChromakeyRemover.RemoveChromaKey2Bytes(img, chromakey_treshold, System.Drawing.Color.FromArgb(ycbcr_color), null, false, 2);
+                        (width, height, raw_data) = LABChromakeyRemover.RemoveChromaKey2Bytes(img, chromakey_treshold, System.Drawing.Color.FromArgb(ycbcr_color), null, false, 3); // 2 is bad
                     else if (use_method == 7)
                         (width, height, raw_data) = LABChromakeyRemover.RemoveChromaKey2Bytes(img, chromakey_treshold, System.Drawing.Color.FromArgb(ycbcr_color), null, false, 3);
+                    else if (use_method == 8)
+                        (width, height, raw_data) = HSVChromakeyRemover.RemoveChromaKey2Bytes(img, chromakey_velocity, chromakey_treshold, System.Drawing.Color.FromArgb(ycbcr_color), null, false, 0);
+                    else if (use_method == 9)
+                        (width, height, raw_data) = HSVChromakeyRemover.RemoveChromaKey2Bytes(img, chromakey_velocity, chromakey_treshold, System.Drawing.Color.FromArgb(ycbcr_color), null, false, 1);
+                    else if (use_method == 10)
+                        (width, height, raw_data) = HSVChromakeyRemover.RemoveChromaKey2Bytes(img, chromakey_velocity, chromakey_treshold, System.Drawing.Color.FromArgb(ycbcr_color), null, false, 2);
+                    else if (use_method == 11)
+                        (width, height, raw_data) = HSVChromakeyRemover.RemoveChromaKey2Bytes(img, chromakey_velocity, chromakey_treshold, System.Drawing.Color.FromArgb(ycbcr_color), null, false, 3);
                     else
                         (width, height, raw_data) = RGBChromakeyRemover.RemoveChromaKey2Bytes(img, chromakey_velocity, chromakey_treshold, chromakey_channel);                    
                 }

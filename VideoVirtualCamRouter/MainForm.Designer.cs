@@ -635,7 +635,11 @@
             "Colour metric",
             "ΔE (CIE 1976)",
             "ΔE (CIE 2000)",
-            "ΔE (CMC)"});
+            "ΔE (CMC)",
+            "HSV Hue",
+            "HSV Full",
+            "HSV Hue (R)",
+            "HSV Full (R)"});
             this.methBox.Location = new System.Drawing.Point(347, 228);
             this.methBox.Name = "methBox";
             this.methBox.Size = new System.Drawing.Size(104, 24);

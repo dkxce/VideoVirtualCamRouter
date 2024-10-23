@@ -1,7 +1,7 @@
 ﻿//
 // ChromakeyRemover (C#)
 // dkxce.ChromakeyRemover
-// v 0.3, 22.10.2024
+// v 0.5, 23.10.2024
 // https://github.com/dkxce
 // en,ru,1251,utf-8
 //
@@ -11,13 +11,7 @@ using System;
 using System.Linq;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
-using static OpenCvSharp.LineIterator;
-using System.Diagnostics;
 using System.Numerics;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement;
-using SixLabors.ImageSharp.ColorSpaces;
-using ColorMine.ColorSpaces.Comparisons;
-using ColorMine.ColorSpaces;
 
 namespace dkxce
 {
@@ -256,6 +250,7 @@ namespace dkxce
         }
     }
 
+    // 3D Vector
     public class RGB3DChromakeyRemover
     {
         private static double colorclose(int R, int G, int B, Color color, float fuzziness = 0.1f)
@@ -351,6 +346,7 @@ namespace dkxce
         }
     }
 
+    // Grayscale proximity
     public class GrayScaleChromakeyRemover
     {
         private static double RGB2toGray(System.Drawing.Color c) => .11 * c.B + .59 * c.G + .30 * c.R;
@@ -447,6 +443,7 @@ namespace dkxce
         }
     }
 
+    // https://www.compuphase.com/cmetric.htm
     public class ColorMetricChromakeyRemover
     {
         private static double colorclose(Color color1, Color color2, float fuzziness = 0.1f)
@@ -558,6 +555,7 @@ namespace dkxce
         }
     }
 
+    // http://www.brucelindbloom.com/
     public class LABChromakeyRemover
     {
         public static Vector4 RGBToXYZ(Color color)
@@ -701,7 +699,7 @@ namespace dkxce
         {
             double delta = DeltaE2000(RGBToLAB(R, G, B), color);
 
-            double maxDistance = fuzziness * 255f;
+            double maxDistance = fuzziness * 441f;
             delta = delta / maxDistance;
             if (delta > 1) return 0;
             return 1 - delta;
@@ -812,6 +810,220 @@ namespace dkxce
             byte[] rgba;
 
             (width, height, rgba) = RemoveChromaKey2Bytes(image, fuziness, rbga_mask, transparentColor, full_mask);
+
+            Bitmap output = new Bitmap(width, height, PixelFormat.Format32bppArgb);
+            BitmapData oData = output.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
+            Marshal.Copy(rgba, 0, oData.Scan0, rgba.Length);
+            output.UnlockBits(oData);
+            return output;
+        }
+    }
+
+    public class HSVChromakeyRemover
+    {
+        private static float GetHue(int R, int G, int B)
+        {
+            if (R == G && G == B)
+            {
+                return 0f;
+            }
+
+            float num = (float)(int)R / 255f;
+            float num2 = (float)(int)G / 255f;
+            float num3 = (float)(int)B / 255f;
+            float num4 = 0f;
+            float num5 = num;
+            float num6 = num;
+            if (num2 > num5)
+            {
+                num5 = num2;
+            }
+
+            if (num3 > num5)
+            {
+                num5 = num3;
+            }
+
+            if (num2 < num6)
+            {
+                num6 = num2;
+            }
+
+            if (num3 < num6)
+            {
+                num6 = num3;
+            }
+
+            float num7 = num5 - num6;
+            if (num == num5)
+            {
+                num4 = (num2 - num3) / num7;
+            }
+            else if (num2 == num5)
+            {
+                num4 = 2f + (num3 - num) / num7;
+            }
+            else if (num3 == num5)
+            {
+                num4 = 4f + (num - num2) / num7;
+            }
+
+            num4 *= 60f;
+            if (num4 < 0f)
+            {
+                num4 += 360f;
+            }
+
+            return num4;
+        }
+
+        public static Vector4 rgbToHSV(Color color)
+        {
+            double[] output = new double[3];
+            double hue, saturation, value;
+            int max = Math.Max(color.R, Math.Max(color.G, color.B));
+            int min = Math.Min(color.R, Math.Min(color.G, color.B));
+
+            hue = GetHue(color.R, color.G, color.B);
+            saturation = (max == 0) ? 0 : 1d - (1d * min / max);
+            value = max / 255d;
+
+            Vector4 res = new Vector4((float)hue, (float)saturation, (float)value, 0f);
+            return res;
+        }
+
+        public static Vector4 rgbToHSV(int R, int G, int B)
+        {
+            double[] output = new double[3];
+            double hue, saturation, value;
+            int max = Math.Max(R, Math.Max(G, B));
+            int min = Math.Min(R, Math.Min(G, B));
+
+            hue = GetHue(R, G, B);
+            saturation = (max == 0) ? 0 : 1d - (1d * min / max);
+            value = max / 255d;
+
+            Vector4 res = new Vector4((float)hue, (float)saturation, (float)value, 0f);
+            return res;
+        }
+
+        private static double colorclose(int R, int G, int B, Vector4 c2, float min_fuz = 0, float max_fuz = 10, float fuzziness = 0.1f, byte mode = 1)
+        {
+            Vector4 c1 = rgbToHSV(R, G, B);
+            double delta = Math.Min(Math.Abs(c1.X - c2.X), 360 - Math.Abs(c1.X - c2.X));
+
+            if (mode == 3)
+            {
+                double dh = delta / 180.0f;
+                double ds = Math.Abs(c1.Y - c2.Y);
+                double dv = Math.Abs(c1.Z - c2.Z) / 255.0f;
+                double distance = Math.Sqrt(dh * dh + ds * ds + dv * dv);
+                delta = distance / fuzziness;
+                if (delta <= min_fuz / 25.5f) return 1;
+                if (delta >= max_fuz / 25.5f) return 0;
+            }
+            if (mode == 2)
+            {
+                if (delta <= min_fuz) return 1;
+                if (delta >= max_fuz) return 0;
+                delta = delta / 180f;
+            }
+            if (mode == 1)
+            {
+                double dh = delta / 180.0f;
+                double ds = Math.Abs(c1.Y - c2.Y);
+                double dv = Math.Abs(c1.Z - c2.Z) / 255.0f;
+                double distance = Math.Sqrt(dh * dh + ds * ds + dv * dv);
+                delta = distance / fuzziness;
+            }
+            else
+            {
+                double maxDistance = fuzziness * 180.0f;
+                delta = delta / maxDistance;
+            };
+
+            if (delta > 1) return 0;
+            return 1 - delta;
+        }
+
+        public static (int, int, byte[]) RemoveChromaKey2Bytes(Bitmap image,
+            int min_fuzzi, int max_fuzzi = 96,
+            Color? rbga_mask = null, Color? transparentColor = null,
+            bool? full_mask = false, byte mode = 2)
+        {
+            if (!rbga_mask.HasValue) rbga_mask = Color.FromArgb(0, 255, 0);
+            if (!full_mask.HasValue) full_mask = false;
+            float fuzz = (float)max_fuzzi / 255f;
+            float min_fuzz = min_fuzzi / 10.0f;
+            float max_fuzz = max_fuzzi / 10.0f;
+
+            Vector4 mask_color = rgbToHSV(rbga_mask.Value);
+            int width = image.Width;
+            int height = image.Height;
+            byte[] rgba_foreground;
+
+            // Get Bitmap Array
+            {
+                BitmapData iData = image.LockBits(new Rectangle(0, 0, image.Width, image.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+                int bytes = Math.Abs(iData.Stride) * image.Height;
+                rgba_foreground = new byte[bytes];
+                Marshal.Copy(iData.Scan0, rgba_foreground, 0, bytes);
+                image.UnlockBits(iData);
+            };
+
+            if (transparentColor.HasValue)
+            {
+                var pixels = Enumerable.Range(0, rgba_foreground.Length / 4).Select(x => new
+                {
+                    B = rgba_foreground[(x * 4)],
+                    G = rgba_foreground[(x * 4) + 1],
+                    R = rgba_foreground[(x * 4) + 2],
+                    MakeTransparent = new Action<double>((mask) =>
+                    {
+                        if (full_mask.Value)
+                        {
+                            rgba_foreground[(x * 4)] = (byte)Math.Min((Math.Max(rgba_foreground[(x * 4)] - mask * rbga_mask.Value.B, 0) + mask * transparentColor.Value.B), 255); //B
+                            rgba_foreground[(x * 4) + 1] = (byte)Math.Min((Math.Max(rgba_foreground[(x * 4) + 1] - mask * rbga_mask.Value.G, 0) + mask * transparentColor.Value.G), 255); //G
+                            rgba_foreground[(x * 4) + 2] = (byte)Math.Min((Math.Max(rgba_foreground[(x * 4) + 2] - mask * rbga_mask.Value.R, 0) + mask * transparentColor.Value.R), 255); //R
+                        };
+                        rgba_foreground[(x * 4) + 3] = (byte)Math.Min((Math.Max(rgba_foreground[(x * 4) + 3] - mask * rbga_mask.Value.A, 0) + mask * transparentColor.Value.A), 255); //A
+                    })
+                });
+                pixels.AsParallel().ForAll(pixel => pixel.MakeTransparent(colorclose(pixel.R, pixel.G, pixel.B, mask_color, min_fuzz, max_fuzz, fuzz, mode)));
+            }
+            else
+            {
+                var pixels = Enumerable.Range(0, rgba_foreground.Length / 4).Select(x => new
+                {
+                    B = rgba_foreground[(x * 4)],
+                    G = rgba_foreground[(x * 4) + 1],
+                    R = rgba_foreground[(x * 4) + 2],
+                    MakeTransparent = new Action<double>((mask) =>
+                    {
+                        if (full_mask.Value)
+                        {
+                            rgba_foreground[(x * 4)] = (byte)Math.Min((Math.Max(rgba_foreground[(x * 4)] - mask * rbga_mask.Value.B, 0) + mask * 0), 255); //B
+                            rgba_foreground[(x * 4) + 1] = (byte)Math.Min((Math.Max(rgba_foreground[(x * 4) + 1] - mask * rbga_mask.Value.G, 0) + mask * 0), 255); //G
+                            rgba_foreground[(x * 4) + 2] = (byte)Math.Min((Math.Max(rgba_foreground[(x * 4) + 2] - mask * rbga_mask.Value.R, 0) + mask * 0), 255); //R
+                        };
+                        rgba_foreground[(x * 4) + 3] = (byte)Math.Min((Math.Max(rgba_foreground[(x * 4) + 3] - mask * 255, 0) + mask * 0), 255); //A
+                    })
+                });
+                pixels.AsParallel().ForAll(pixel => pixel.MakeTransparent(colorclose(pixel.R, pixel.G, pixel.B, mask_color, min_fuzz, max_fuzz, fuzz, mode)));
+            };
+
+            return (width, height, rgba_foreground);
+        }
+
+        public static Bitmap RemoveChromaKey2Bitmap(Bitmap image,
+            int min_fuzz, int max_fuzz = 96,
+            Color? rbga_mask = null, Color? transparentColor = null,
+            bool? full_mask = false, byte mode = 2)
+        {
+            int width, height;
+            byte[] rgba;
+
+            (width, height, rgba) = RemoveChromaKey2Bytes(image, min_fuzz, max_fuzz, rbga_mask, transparentColor, full_mask, mode);
 
             Bitmap output = new Bitmap(width, height, PixelFormat.Format32bppArgb);
             BitmapData oData = output.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);

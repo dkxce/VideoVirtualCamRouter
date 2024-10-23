@@ -31,7 +31,7 @@ namespace VideoVirtualCamRouter
             ReloadBackgroundImage();
 
             if (destCamBox.Items.Count > 0) button3.Enabled = false;
-            methBox.SelectedIndex = 0;
+            methBox.SelectedIndex = 1;
         }
 
         public static bool IsAdministrator()
