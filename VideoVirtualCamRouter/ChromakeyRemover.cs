@@ -1,30 +1,65 @@
 ﻿//
 // ChromakeyRemover (C#)
 // dkxce.ChromakeyRemover
-// v 0.5, 23.10.2024
+// v 0.6, 23.10.2024
 // https://github.com/dkxce
 // en,ru,1251,utf-8
 //
 
-using System.Drawing;
 using System;
+using System.Drawing;
 using System.Linq;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 using System.Numerics;
+using System.Reflection;
 
-namespace dkxce
-{
+namespace dkxce.Chromakeys
+{    
+    public static class ChromakeyRemover<T> where T : class
+    {
+         public static (int, int, byte[]) RemoveChromaKey2Bytes(Bitmap image,
+            byte min_treshold = 8, byte max_treshold = 96,
+            Color? mask_color = null,
+            Color? transparent_color = null,
+            object additional_parameter = null)
+        {
+            Type type = typeof(T);
+            MethodInfo info = type.GetMethod("RemoveChromaKey2Bytes", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy);
+            ValueTuple<int, int, byte[]> tuple = (ValueTuple<int, int, byte[]>)info.Invoke(null, new object[] { image, min_treshold, max_treshold, mask_color, transparent_color, additional_parameter });
+            return (tuple.Item1, tuple.Item2, tuple.Item3);
+        }
+
+        public static Bitmap RemoveChromaKey2Bitmap(Bitmap image,
+            byte min_treshold = 8, byte max_treshold = 96,
+            Color? mask_color = null,
+            Color? transparent_color = null,
+            object additional_parameter = null)
+        {
+            int width, height;
+            byte[] rgba;
+
+            (width, height, rgba) = RemoveChromaKey2Bytes(image, min_treshold, max_treshold, mask_color, transparent_color, additional_parameter);
+
+            Bitmap output = new Bitmap(width, height, PixelFormat.Format32bppArgb);
+            BitmapData oData = output.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
+            Marshal.Copy(rgba, 0, oData.Scan0, rgba.Length);
+            output.UnlockBits(oData);
+            return output;
+        }
+    }
+
     public class RGBChromakeyRemover
     {
         public enum Channel: int { Red = 0, Green = 1, Blue = 2 }
 
-        public static (int, int, byte[]) RemoveChromaKey2Bytes(Bitmap image, 
-            int velocity = 8, int threshold = 96,
+        public static (int, int, byte[]) RemoveChromaKey2Bytes(
+            Bitmap image, 
+            byte min_treshold = 8, byte max_treshold = 96,
             Channel? channel = Channel.Green, Color? transparentColor = null, 
-            int? min_threshold = null)
+            int? avg_treshold = null)
         {
-            float delta_threshold = min_threshold.HasValue ? 1.0f / ((float)threshold - (float)min_threshold) : 0.0f;
+            float delta_threshold = avg_treshold.HasValue ? 1.0f / ((float)max_treshold - (float)avg_treshold) : 0.0f;
 
             int width = image.Width; 
             int height = image.Height;
@@ -51,14 +86,14 @@ namespace dkxce
                     {
                         if (alpha >= 1)
                         {
-                            rgba[(x * 4)] = transparentColor.Value.B;
+                            rgba[(x * 4)]     = transparentColor.Value.B;
                             rgba[(x * 4) + 1] = transparentColor.Value.G;
                             rgba[(x * 4) + 2] = transparentColor.Value.R;
                             rgba[(x * 4) + 3] = transparentColor.Value.A;
                         }
                         else
                         {
-                            rgba[(x * 4)] = (byte)(transparentColor.Value.B * alpha + rgba[x * 4] * (1 - alpha));
+                            rgba[(x * 4)]     = (byte)(transparentColor.Value.B * alpha + rgba[x * 4]       * (1 - alpha));
                             rgba[(x * 4) + 1] = (byte)(transparentColor.Value.G * alpha + rgba[(x * 4) + 1] * (1 - alpha));
                             rgba[(x * 4) + 2] = (byte)(transparentColor.Value.R * alpha + rgba[(x * 4) + 2] * (1 - alpha));
                             rgba[(x * 4) + 3] = (byte)(transparentColor.Value.A * alpha + rgba[(x * 4) + 3] * (1 - alpha));
@@ -75,11 +110,11 @@ namespace dkxce
                         if (channel == Channel.Red) pColor = pixel.R;
                         if (channel == Channel.Blue) pColor = pixel.B;
                     };
-                    if (pColor != min && (pColor == max || max - pColor < velocity))
+                    if (pColor != min && (pColor == max || max - pColor < min_treshold))
                     {
                         byte mm = (byte)(max - min);
-                        if (mm > threshold) pixel.MakeTransparent(1.0f);
-                        else if (min_threshold.HasValue && mm >= min_threshold) pixel.MakeTransparent((mm - min_threshold.Value) * delta_threshold);
+                        if (mm > max_treshold) pixel.MakeTransparent(1.0f);
+                        else if (avg_treshold.HasValue && mm >= avg_treshold) pixel.MakeTransparent((mm - avg_treshold.Value) * delta_threshold);
                     };
                 });
             }
@@ -91,8 +126,7 @@ namespace dkxce
                     G = rgba[(x * 4) + 1],
                     R = rgba[(x * 4) + 2],
                     A = rgba[(x * 4) + 3],
-                    //MakeTransparent = new Action(() => rgba[(x * 4) + 3] = 0),
-                    MakeTransparent = new Action<float>((a) => rgba[(x * 4) + 3] = (byte)((float)rgba[(x * 4) + 3] * a)) // or a/2 .. a/5
+                    MakeTransparent = new Action<float>((a) => rgba[(x * 4) + 3] = (byte)((float)rgba[(x * 4) + 3] * a))
                 });
                 pixels.AsParallel().ForAll(pixel =>
                 {
@@ -104,11 +138,11 @@ namespace dkxce
                         if (channel == Channel.Red) pColor = pixel.R;
                         if (channel == Channel.Blue) pColor = pixel.B;
                     };
-                    if (pColor != min && (pColor == max || max - pColor < velocity))
+                    if (pColor != min && (pColor == max || max - pColor < min_treshold))
                     {
                         byte mm = (byte)(max - min);
-                        if (mm > threshold) pixel.MakeTransparent(0.0f);
-                        else if (min_threshold.HasValue && mm >= min_threshold) pixel.MakeTransparent(1.0f - ((mm - min_threshold.Value) * delta_threshold));
+                        if (mm > max_treshold) pixel.MakeTransparent(0.0f);
+                        else if (avg_treshold.HasValue && mm >= avg_treshold) pixel.MakeTransparent(1.0f - ((mm - avg_treshold.Value) * delta_threshold));
                     };
                 });
             };
@@ -116,15 +150,16 @@ namespace dkxce
             return (width, height, rgba);
         }
 
-        public static Bitmap RemoveChromaKey2Bitmap(Bitmap image, 
-            int velocity = 8, int threshold = 96,
+        public static Bitmap RemoveChromaKey2Bitmap(
+            Bitmap image,
+            byte min_treshold = 8, byte max_treshold = 96,
             Channel? channel = Channel.Green, Color? transparentColor = null,
-            int? min_threshold = null)
+            int? avg_treshold = null)
         {
             int width, height;
             byte[] rgba;
 
-            (width, height, rgba) = RemoveChromaKey2Bytes(image, velocity, threshold, channel, transparentColor, min_threshold);
+            (width, height, rgba) = RemoveChromaKey2Bytes(image, min_treshold, max_treshold, channel, transparentColor, avg_treshold);
 
             Bitmap output = new Bitmap(width, height, PixelFormat.Format32bppArgb);
             BitmapData oData = output.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
@@ -134,44 +169,47 @@ namespace dkxce
         }
     }
 
-    // http://gc-films.com/chromakey.html
+    // Good and Fast. http://gc-films.com/chromakey.html
     public class YCbCrChromakeyRemover
     {
+        #region RGB2YCbCr
         private static int rgb2y(int r, int g, int b) => (int)Math.Round(0.299 * (double)r + 0.587 * (double)g + 0.114 * (double)b);
 
         private static int rgb2cb(int r, int g, int b) => (int)Math.Round(128.0 + -0.168736 * (double)r - 0.331264 * (double)g + 0.5 * (double)b);
 
         private static int rgb2cr(int r, int g, int b) => (int)Math.Round(128.0 + 0.5 * (double)r - 0.418688 * (double)g - 0.081312 * (double)b);
+        #endregion RGB2YCbCr
 
-        private static double colorclose(int Cb_p, int Cr_p, int Cb_key, int Cr_key, int tola, int tolb)
+        #region not used colorclose
+        private static double colorclose(int Cb_p, int Cr_p, int Cb_key, int Cr_key, byte min_treshold, byte max_treshold)
         {
             double d = Math.Sqrt(Math.Pow(Cb_key - Cb_p, 2) + Math.Pow(Cr_key - Cr_p, 2));
-            return 1 - (d < tola ? 0 : d > tolb ? 1 : (d - tola) / (tolb - tola));
+            return 1 - (d < min_treshold ? 0 : d > max_treshold ? 1 : (d - min_treshold) / (max_treshold - min_treshold));
         }
 
-        private static double colorclose(Color remColor, int Cb_key, int Cr_key, int tola, int tolb)
+        private static double colorclose(Color remColor, int Cb_key, int Cr_key, byte min_treshold, byte max_treshold)
         {
             int Cb_p = rgb2cb(remColor.R, remColor.G, remColor.B);
             int Cr_p = rgb2cr(remColor.R, remColor.G, remColor.B);
             double d = Math.Sqrt(Math.Pow(Cb_key - Cb_p, 2) + Math.Pow(Cr_key - Cr_p, 2));
-            return 1 - (d < tola ? 0 : d > tolb ? 1 : (d - tola) / (tolb - tola));
+            return 1 - (d < min_treshold ? 0 : d > max_treshold ? 1 : (d - min_treshold) / (max_treshold - min_treshold));
         }
+        #endregion not used colorclose
 
-        private static double colorclose(int R, int G, int B, int Cb_key, int Cr_key, int tola, int tolb)
+        private static double colorclose(int R, int G, int B, int Cb_key, int Cr_key, byte min_treshold, byte max_treshold)
         {
-            int Cb_p = rgb2cb(R, G, B);
-            int Cr_p = rgb2cr(R, G, B);
-            double d = Math.Sqrt(Math.Pow(Cb_key - Cb_p, 2) + Math.Pow(Cr_key - Cr_p, 2));
-            return 1 - (d < tola ? 0 : d > tolb ? 1 : (d - tola) / (tolb - tola));
+            double d = Math.Sqrt(Math.Pow(Cb_key - rgb2cb(R, G, B), 2) + Math.Pow(Cr_key - rgb2cr(R, G, B), 2));
+            return 1 - (d < min_treshold ? 0 : d > max_treshold ? 1 : (d - min_treshold) / (max_treshold - min_treshold));
         }
 
-        public static (int, int, byte[]) RemoveChromaKey2Bytes(Bitmap image,
-            int min_treshold = 50, int max_treshold = 96,
-            Color? rbga_mask = null, Color? transparentColor = null,
-            bool? full_mask = false)
+        public static (int, int, byte[]) RemoveChromaKey2Bytes(
+            Bitmap image,
+            byte min_treshold = 8, byte max_treshold = 96,
+            Color? rbga_mask = null, Color? transparentColor = null, bool? full_mask = false)
         {
             if (!rbga_mask.HasValue) rbga_mask = Color.FromArgb(0, 255, 0);
             if (!full_mask.HasValue) full_mask = false;
+
             int cb_mask = rgb2cb(rbga_mask.Value.R, rbga_mask.Value.G, rbga_mask.Value.B);
             int cr_mask = rgb2cr(rbga_mask.Value.R, rbga_mask.Value.G, rbga_mask.Value.B);
 
@@ -199,11 +237,11 @@ namespace dkxce
                     {
                         if (full_mask.Value)
                         {
-                            rgba_foreground[(x * 4)] = (byte)Math.Min((Math.Max(rgba_foreground[(x * 4)] - mask * rbga_mask.Value.B, 0) + mask * transparentColor.Value.B), 255); //B
+                            rgba_foreground[(x * 4)]     = (byte)Math.Min((Math.Max(rgba_foreground[(x * 4)]     - mask * rbga_mask.Value.B, 0) + mask * transparentColor.Value.B), 255); //B
                             rgba_foreground[(x * 4) + 1] = (byte)Math.Min((Math.Max(rgba_foreground[(x * 4) + 1] - mask * rbga_mask.Value.G, 0) + mask * transparentColor.Value.G), 255); //G
                             rgba_foreground[(x * 4) + 2] = (byte)Math.Min((Math.Max(rgba_foreground[(x * 4) + 2] - mask * rbga_mask.Value.R, 0) + mask * transparentColor.Value.R), 255); //R
                         };
-                        rgba_foreground[(x * 4) + 3] = (byte)Math.Min((Math.Max(rgba_foreground[(x * 4) + 3] - mask * rbga_mask.Value.A, 0) + mask * transparentColor.Value.A), 255); //A
+                        rgba_foreground[(x * 4) + 3] = (byte)Math.Min((Math.Max(rgba_foreground[(x * 4) + 3] - mask * rbga_mask.Value.A,     0) + mask * transparentColor.Value.A), 255); //A
                     })
                 });
                 pixels.AsParallel().ForAll(pixel => pixel.MakeTransparent(colorclose(pixel.R, pixel.G, pixel.B, cb_mask, cr_mask, min_treshold, max_treshold)));
@@ -219,11 +257,11 @@ namespace dkxce
                     {
                         if (full_mask.Value)
                         {
-                            rgba_foreground[(x * 4)] = (byte)Math.Min((Math.Max(rgba_foreground[(x * 4)] - mask * rbga_mask.Value.B, 0) + mask * 0), 255); //B
+                            rgba_foreground[(x * 4)]     = (byte)Math.Min((Math.Max(rgba_foreground[(x * 4)]     - mask * rbga_mask.Value.B, 0) + mask * 0), 255);         //B
                             rgba_foreground[(x * 4) + 1] = (byte)Math.Min((Math.Max(rgba_foreground[(x * 4) + 1] - mask * rbga_mask.Value.G, 0) + mask * 0), 255); //G
                             rgba_foreground[(x * 4) + 2] = (byte)Math.Min((Math.Max(rgba_foreground[(x * 4) + 2] - mask * rbga_mask.Value.R, 0) + mask * 0), 255); //R
                         };
-                        rgba_foreground[(x * 4) + 3] = (byte)Math.Min((Math.Max(rgba_foreground[(x * 4) + 3] - mask * 255,               0) + mask * 0), 255); //A
+                        rgba_foreground[(x * 4) + 3] = (byte)Math.Min((Math.Max(rgba_foreground[(x * 4) + 3] - mask * 255,                   0) + mask * 0), 255); //A
                     })
                 });
                 pixels.AsParallel().ForAll(pixel => pixel.MakeTransparent(colorclose(pixel.R, pixel.G, pixel.B, cb_mask, cr_mask, min_treshold, max_treshold)) );
@@ -232,10 +270,10 @@ namespace dkxce
             return (width, height, rgba_foreground);
         }
 
-        public static Bitmap RemoveChromaKey2Bitmap(Bitmap image,
-            int min_treshold = 50, int max_treshold = 96,
-            Color? rbga_mask = null, Color? transparentColor = null,
-            bool? full_mask = false)
+        public static Bitmap RemoveChromaKey2Bitmap(
+            Bitmap image,
+            byte min_treshold = 8, byte max_treshold = 96,
+            Color? rbga_mask = null, Color? transparentColor = null, bool? full_mask = false)
         {
             int width, height;
             byte[] rgba;
@@ -253,23 +291,28 @@ namespace dkxce
     // 3D Vector
     public class RGB3DChromakeyRemover
     {
-        private static double colorclose(int R, int G, int B, Color color, float fuzziness = 0.1f)
+        private static double colorclose(int R, int G, int B, Color color, float min_fuzz = 0.05f, float max_fuzz = 0.1f)
         {
-            double maxDistance = fuzziness * 441.0f;
+            const double max_color_distance = 441.0f;
+            double maxDistance = max_fuzz * max_color_distance;
             double delta = Math.Sqrt(Math.Pow(R - color.R, 2) + Math.Pow(G - color.G, 2) + Math.Pow(B - color.B, 2));
-            delta = delta / maxDistance;
+            // ++ STANDARD LOGIC ++ //
+            delta = delta / maxDistance;            
+            if (delta < min_fuzz / max_fuzz) return 1;
             if (delta > 1) return 0;
             return 1 - delta;
+            // -- STANDARD LOGIC -- //
         }
 
         public static (int, int, byte[]) RemoveChromaKey2Bytes(Bitmap image,
-            int fuziness = 96,
+            byte min_treshold = 9, byte max_treshold = 96,
             Color? rbga_mask = null, Color? transparentColor = null,
             bool? full_mask = false)
         {
             if (!rbga_mask.HasValue) rbga_mask = Color.FromArgb(0, 255, 0);
             if (!full_mask.HasValue) full_mask = false;
-            float fuzz = (float)fuziness / 255f;
+            float trMin = (float)min_treshold / 255f;
+            float trMax = (float)max_treshold / 255f;
 
             int width = image.Width;
             int height = image.Height;
@@ -302,7 +345,7 @@ namespace dkxce
                         rgba_foreground[(x * 4) + 3] = (byte)Math.Min((Math.Max(rgba_foreground[(x * 4) + 3] - mask * rbga_mask.Value.A, 0) + mask * transparentColor.Value.A), 255); //A
                     })
                 });
-                pixels.AsParallel().ForAll(pixel => pixel.MakeTransparent(colorclose(pixel.R, pixel.G, pixel.B, rbga_mask.Value, fuzz)));
+                pixels.AsParallel().ForAll(pixel => pixel.MakeTransparent(colorclose(pixel.R, pixel.G, pixel.B, rbga_mask.Value, trMin, trMax)));
             }
             else
             {
@@ -322,21 +365,21 @@ namespace dkxce
                         rgba_foreground[(x * 4) + 3] = (byte)Math.Min((Math.Max(rgba_foreground[(x * 4) + 3] - mask * 255, 0) + mask * 0), 255); //A
                     })
                 });
-                pixels.AsParallel().ForAll(pixel => pixel.MakeTransparent(colorclose(pixel.R, pixel.G, pixel.B, rbga_mask.Value, fuzz)));
+                pixels.AsParallel().ForAll(pixel => pixel.MakeTransparent(colorclose(pixel.R, pixel.G, pixel.B, rbga_mask.Value, trMin, trMax)));
             };
 
             return (width, height, rgba_foreground);
         }
 
         public static Bitmap RemoveChromaKey2Bitmap(Bitmap image,
-            int fuziness = 96,
+            byte min_treshold = 9, byte max_treshold = 96,
             Color? rbga_mask = null, Color? transparentColor = null,
             bool? full_mask = false)
         {
             int width, height;
             byte[] rgba;
 
-            (width, height, rgba) = RemoveChromaKey2Bytes(image, fuziness, rbga_mask, transparentColor, full_mask);
+            (width, height, rgba) = RemoveChromaKey2Bytes(image, min_treshold, max_treshold, rbga_mask, transparentColor, full_mask);
 
             Bitmap output = new Bitmap(width, height, PixelFormat.Format32bppArgb);
             BitmapData oData = output.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
@@ -351,22 +394,24 @@ namespace dkxce
     {
         private static double RGB2toGray(System.Drawing.Color c) => .11 * c.B + .59 * c.G + .30 * c.R;
         private static double RGB2toGray(int B, int G, int R) => .11 * B + .59 * G + .30 * R;
-        private static double colorclose(double gray1, double gray2, float fuzziness = 0.1f)
+
+        private static double colorclose(double gray1, double gray2, float min_fuzz = 0.05f, float max_fuzz = 0.1f)
         {
-            double maxDistance = fuzziness * 255.0f;
-            double delta = (gray1 - gray2) / maxDistance;
+            // ++ STANDARD LOGIC ++ //
+            double delta = Math.Abs(gray1 - gray2) / max_fuzz;
+            if (delta < min_fuzz / max_fuzz) return 1;
             if (delta > 1) return 0;
             return 1 - delta;
+            // -- STANDARD LOGIC -- //
         }
 
         public static (int, int, byte[]) RemoveChromaKey2Bytes(Bitmap image,
-            int fuziness = 96,
+            byte min_treshold = 9, byte max_treshold = 96,
             Color? rbga_mask = null, Color? transparentColor = null,
             bool? full_mask = false)
         {
             double mask_color = RGB2toGray(rbga_mask.HasValue ? rbga_mask.Value : Color.Green);
             if (!full_mask.HasValue) full_mask = false;
-            float fuzz = (float)fuziness / 255f;
 
             int width = image.Width;
             int height = image.Height;
@@ -399,7 +444,7 @@ namespace dkxce
                         rgba_foreground[(x * 4) + 3] = (byte)Math.Min((Math.Max(rgba_foreground[(x * 4) + 3] - mask * rbga_mask.Value.A, 0) + mask * transparentColor.Value.A), 255); //A
                     })
                 });
-                pixels.AsParallel().ForAll(pixel => pixel.MakeTransparent(colorclose(mask_color, RGB2toGray(pixel.R, pixel.G, pixel.B), fuzz)));
+                pixels.AsParallel().ForAll(pixel => pixel.MakeTransparent(colorclose(mask_color, RGB2toGray(pixel.R, pixel.G, pixel.B), min_treshold, max_treshold)));
             }
             else
             {
@@ -419,21 +464,21 @@ namespace dkxce
                         rgba_foreground[(x * 4) + 3] = (byte)Math.Min((Math.Max(rgba_foreground[(x * 4) + 3] - mask * 255, 0) + mask * 0), 255); //A
                     })
                 });
-                pixels.AsParallel().ForAll(pixel => pixel.MakeTransparent(colorclose(mask_color, RGB2toGray(pixel.R, pixel.G, pixel.B), fuzz)));
+                pixels.AsParallel().ForAll(pixel => pixel.MakeTransparent(colorclose(mask_color, RGB2toGray(pixel.R, pixel.G, pixel.B), min_treshold, max_treshold)));
             };
 
             return (width, height, rgba_foreground);
         }
 
         public static Bitmap RemoveChromaKey2Bitmap(Bitmap image,
-            int fuziness = 96,
+            byte min_treshold = 9, byte max_treshold = 96,
             Color? rbga_mask = null, Color? transparentColor = null,
             bool? full_mask = false)
         {
             int width, height;
             byte[] rgba;
 
-            (width, height, rgba) = RemoveChromaKey2Bytes(image, fuziness, rbga_mask, transparentColor, full_mask);
+            (width, height, rgba) = RemoveChromaKey2Bytes(image, min_treshold, max_treshold, rbga_mask, transparentColor, full_mask);
 
             Bitmap output = new Bitmap(width, height, PixelFormat.Format32bppArgb);
             BitmapData oData = output.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
@@ -446,39 +491,55 @@ namespace dkxce
     // https://www.compuphase.com/cmetric.htm
     public class ColorMetricChromakeyRemover
     {
-        private static double colorclose(Color color1, Color color2, float fuzziness = 0.1f)
+        private static double colorclose(Color color1, Color color2, float min_fuzz = 0.05f, float max_fuzz = 0.1f)
         {
+            const double max_color_distance = 767f;
             long rmean = ((long)color1.R + (long)color2.R) / 2;
             long r = (long)color1.R - (long)color2.R;
             long g = (long)color1.G - (long)color2.G;
             long b = (long)color1.B - (long)color2.B;
+
             double dist = Math.Sqrt((((512 + rmean) * r * r) >> 8) + 4 * g * g + (((767 - rmean) * b * b) >> 8));
-            return dist;
+
+            double minDistance = min_fuzz * max_color_distance;
+            double maxDistance = max_fuzz * max_color_distance;
+            // ++ STANDARD LOGIC ++ //
+            double delta = dist / maxDistance;
+            if (delta < min_fuzz / max_fuzz) return 1;
+            if (delta > 1) return 0;
+            return 1 - delta;
+            // -- STANDARD LOGIC -- //
         }
 
-        private static double colorclose(int R, int G, int B, Color color2, float fuzziness = 0.1f)
+        private static double colorclose(int R, int G, int B, Color color2, float min_fuzz = 0.05f, float max_fuzz = 0.1f)
         {
+            const double max_color_distance = 767f;
             long rmean = ((long)R + (long)color2.R) / 2;
             long r = (long)R - (long)color2.R;
             long g = (long)G - (long)color2.G;
             long b = (long)B - (long)color2.B;
-            
+
             double dist = Math.Sqrt((((512 + rmean) * r * r) >> 8) + 4 * g * g + (((767 - rmean) * b * b) >> 8));
 
-            double maxDistance = fuzziness * 767;
+            double minDistance = min_fuzz * max_color_distance;
+            double maxDistance = max_fuzz * max_color_distance;
+            // ++ STANDARD LOGIC ++ //
             double delta = dist / maxDistance;
+            if (delta < min_fuzz / max_fuzz) return 1;
             if (delta > 1) return 0;
             return 1 - delta;
+            // -- STANDARD LOGIC -- //
         }
 
         public static (int, int, byte[]) RemoveChromaKey2Bytes(Bitmap image,
-            int fuziness = 96,
+            byte min_treshold = 9, byte max_treshold = 96,
             Color? rbga_mask = null, Color? transparentColor = null,
             bool? full_mask = false)
         {
             if (!rbga_mask.HasValue) rbga_mask = Color.FromArgb(0, 255, 0);
             if (!full_mask.HasValue) full_mask = false;
-            float fuzz = (float)fuziness / 255f;
+            float min_fuzz = (float)min_treshold / 255f;
+            float max_fuzz = (float)max_treshold / 255f;
 
             int width = image.Width;
             int height = image.Height;
@@ -511,7 +572,7 @@ namespace dkxce
                         rgba_foreground[(x * 4) + 3] = (byte)Math.Min((Math.Max(rgba_foreground[(x * 4) + 3] - mask * rbga_mask.Value.A, 0) + mask * transparentColor.Value.A), 255); //A
                     })
                 });
-                pixels.AsParallel().ForAll(pixel => pixel.MakeTransparent(colorclose(pixel.R, pixel.G, pixel.B, rbga_mask.Value, fuzz)));
+                pixels.AsParallel().ForAll(pixel => pixel.MakeTransparent(colorclose(pixel.R, pixel.G, pixel.B, rbga_mask.Value, min_fuzz, max_fuzz)));
             }
             else
             {
@@ -531,21 +592,21 @@ namespace dkxce
                         rgba_foreground[(x * 4) + 3] = (byte)Math.Min((Math.Max(rgba_foreground[(x * 4) + 3] - mask * 255, 0) + mask * 0), 255); //A
                     })
                 });
-                pixels.AsParallel().ForAll(pixel => pixel.MakeTransparent(colorclose(pixel.R, pixel.G, pixel.B, rbga_mask.Value, fuzz)));
+                pixels.AsParallel().ForAll(pixel => pixel.MakeTransparent(colorclose(pixel.R, pixel.G, pixel.B, rbga_mask.Value, min_fuzz, max_fuzz)));
             };
 
             return (width, height, rgba_foreground);
         }
 
         public static Bitmap RemoveChromaKey2Bitmap(Bitmap image,
-            int fuziness = 96,
+            byte min_treshold = 9, byte max_treshold = 96,
             Color? rbga_mask = null, Color? transparentColor = null,
             bool? full_mask = false)
         {
             int width, height;
             byte[] rgba;
 
-            (width, height, rgba) = RemoveChromaKey2Bytes(image, fuziness, rbga_mask, transparentColor, full_mask);
+            (width, height, rgba) = RemoveChromaKey2Bytes(image, min_treshold, max_treshold, rbga_mask, transparentColor, full_mask);
 
             Bitmap output = new Bitmap(width, height, PixelFormat.Format32bppArgb);
             BitmapData oData = output.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
@@ -630,7 +691,6 @@ namespace dkxce
 
         public static Vector4 RGBToLAB(double var_R, double var_G, double var_B) => XYZToLAB(RGBToXYZ(var_R, var_G, var_B));
 
-
         public static double DeltaE2000(Vector4 Lab1, Vector4 Lab2)
         {
             double kL = 1.0f;
@@ -685,28 +745,37 @@ namespace dkxce
             return res;
         }
 
-        private static double colorclose(int R, int G, int B, Color color, float fuzziness = 0.1f)
-        {            
+        private static double colorclose(int R, int G, int B, Color color, float min_fuzz = 0.05f, float max_fuzz = 0.1f)
+        {
+            const double max_color_distance = 255.0f;
             double delta = DeltaE2000(RGBToLAB(R, G, B), RGBToLAB(color));
 
-            double maxDistance = fuzziness * 512f;
-            delta = delta / maxDistance;
+            double maxDistance = max_fuzz * max_color_distance;
+            // ++ STANDARD LOGIC ++ //
+            delta = delta / maxDistance;            
+            if (delta < min_fuzz / max_fuzz) return 1;
             if (delta > 1) return 0;
             return 1 - delta;
+            // -- STANDARD LOGIC -- //
         }
 
-        private static double colorclose(int R, int G, int B, Vector4 color, float fuzziness = 0.1f)
+        private static double colorclose(int R, int G, int B, Vector4 color, float min_fuzz = 0.05f, float max_fuzz = 0.1f)
         {
+            const double max_color_distance = 255.0f;
             double delta = DeltaE2000(RGBToLAB(R, G, B), color);
 
-            double maxDistance = fuzziness * 441f;
+            double maxDistance = max_fuzz * max_color_distance;
+            // ++ STANDARD LOGIC ++ //
             delta = delta / maxDistance;
+            if (delta < min_fuzz/max_fuzz) return 1;
             if (delta > 1) return 0;
             return 1 - delta;
+            // -- STANDARD LOGIC -- //
         }
 
-        private static double colorclose(int R, int G, int B, ColorMine.ColorSpaces.Rgb color, float fuzziness = 0.1f, byte method = 0)
+        private static double colorclose(int R, int G, int B, ColorMine.ColorSpaces.Rgb color, float min_fuzz = 0.05f, float max_fuzz = 0.1f, byte method = 0)
         {
+            const double max_color_distance = 255.0f;
             ColorMine.ColorSpaces.Rgb rgb1 = new ColorMine.ColorSpaces.Rgb() { R = R, B = B, G = G };
             ColorMine.ColorSpaces.Rgb rgb2 = new ColorMine.ColorSpaces.Rgb() { R = color.R, B = color.B, G = color.G };
             
@@ -714,14 +783,17 @@ namespace dkxce
             if (method == 0) delta = rgb1.Compare(rgb2, new ColorMine.ColorSpaces.Comparisons.Cie1976Comparison());
             if (method == 3) delta = rgb1.Compare(rgb2, new ColorMine.ColorSpaces.Comparisons.CmcComparison());
 
-            double maxDistance = fuzziness * 255f;
+            double maxDistance = max_fuzz * max_color_distance;
+            // ++ STANDARD LOGIC ++ //
             delta = delta / maxDistance;
+            if (delta < min_fuzz / max_fuzz) return 1;
             if (delta > 1) return 0;
             return 1 - delta;
+            // -- STANDARD LOGIC -- //
         }
 
         public static (int, int, byte[]) RemoveChromaKey2Bytes(Bitmap image,
-            int fuziness = 96,
+            byte min_treshold = 9, byte max_treshold = 96,
             Color? rbga_mask = null, Color? transparentColor = null,
             bool? full_mask = false, byte method = 3)
         {
@@ -730,7 +802,8 @@ namespace dkxce
             if (method == 0 || method == 3) mask_color = new ColorMine.ColorSpaces.Rgb() { R = rbga_mask.Value.R, B = rbga_mask.Value.B, G = rbga_mask.Value.G };
             else mask_color = RGBToLAB(rbga_mask.Value);
             if (!full_mask.HasValue) full_mask = false;
-            float fuzz = (float)fuziness / 255f;
+            float min_fuzz = (float)min_treshold / 255f;
+            float max_fuzz = (float)max_treshold / 255f;
 
             int width = image.Width;
             int height = image.Height;
@@ -766,9 +839,9 @@ namespace dkxce
                 pixels.AsParallel().ForAll(pixel =>
                 {
                     if (method == 0 || method == 3)
-                        pixel.MakeTransparent(colorclose(pixel.R, pixel.G, pixel.B, (ColorMine.ColorSpaces.Rgb)mask_color, fuzz, method));
+                        pixel.MakeTransparent(colorclose(pixel.R, pixel.G, pixel.B, (ColorMine.ColorSpaces.Rgb)mask_color, min_fuzz, max_fuzz, method));
                     else
-                        pixel.MakeTransparent(colorclose(pixel.R, pixel.G, pixel.B, (Vector4)mask_color, fuzz));
+                        pixel.MakeTransparent(colorclose(pixel.R, pixel.G, pixel.B, (Vector4)mask_color, min_fuzz, max_fuzz));
                 });
             }
             else
@@ -792,9 +865,9 @@ namespace dkxce
                 pixels.AsParallel().ForAll(pixel =>
                 {
                     if (method == 0 || method == 3)
-                        pixel.MakeTransparent(colorclose(pixel.R, pixel.G, pixel.B, (ColorMine.ColorSpaces.Rgb)mask_color, fuzz, method));
+                        pixel.MakeTransparent(colorclose(pixel.R, pixel.G, pixel.B, (ColorMine.ColorSpaces.Rgb)mask_color, min_fuzz, max_fuzz, method));
                     else
-                        pixel.MakeTransparent(colorclose(pixel.R, pixel.G, pixel.B, (Vector4)mask_color, fuzz));
+                        pixel.MakeTransparent(colorclose(pixel.R, pixel.G, pixel.B, (Vector4)mask_color, min_fuzz, max_fuzz));
                 });
             };
 
@@ -802,14 +875,14 @@ namespace dkxce
         }
 
         public static Bitmap RemoveChromaKey2Bitmap(Bitmap image,
-            int fuziness = 96,
+            byte min_treshold = 9, byte max_treshold = 96,
             Color? rbga_mask = null, Color? transparentColor = null,
             bool? full_mask = false)
         {
             int width, height;
             byte[] rgba;
 
-            (width, height, rgba) = RemoveChromaKey2Bytes(image, fuziness, rbga_mask, transparentColor, full_mask);
+            (width, height, rgba) = RemoveChromaKey2Bytes(image, min_treshold, max_treshold, rbga_mask, transparentColor, full_mask);
 
             Bitmap output = new Bitmap(width, height, PixelFormat.Format32bppArgb);
             BitmapData oData = output.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
@@ -823,10 +896,7 @@ namespace dkxce
     {
         private static float GetHue(int R, int G, int B)
         {
-            if (R == G && G == B)
-            {
-                return 0f;
-            }
+            if (R == G && G == B) return 0f;
 
             float num = (float)(int)R / 255f;
             float num2 = (float)(int)G / 255f;
@@ -834,45 +904,16 @@ namespace dkxce
             float num4 = 0f;
             float num5 = num;
             float num6 = num;
-            if (num2 > num5)
-            {
-                num5 = num2;
-            }
-
-            if (num3 > num5)
-            {
-                num5 = num3;
-            }
-
-            if (num2 < num6)
-            {
-                num6 = num2;
-            }
-
-            if (num3 < num6)
-            {
-                num6 = num3;
-            }
-
+            if (num2 > num5) num5 = num2;
+            if (num3 > num5) num5 = num3;
+            if (num2 < num6) num6 = num2;
+            if (num3 < num6) num6 = num3;
             float num7 = num5 - num6;
-            if (num == num5)
-            {
-                num4 = (num2 - num3) / num7;
-            }
-            else if (num2 == num5)
-            {
-                num4 = 2f + (num3 - num) / num7;
-            }
-            else if (num3 == num5)
-            {
-                num4 = 4f + (num - num2) / num7;
-            }
-
+            if (num == num5) num4 = (num2 - num3) / num7;
+            else if (num2 == num5) num4 = 2f + (num3 - num) / num7;
+            else if (num3 == num5) num4 = 4f + (num - num2) / num7;
             num4 *= 60f;
-            if (num4 < 0f)
-            {
-                num4 += 360f;
-            }
+            if (num4 < 0f) num4 += 360f;
 
             return num4;
         }
@@ -907,55 +948,60 @@ namespace dkxce
             return res;
         }
 
-        private static double colorclose(int R, int G, int B, Vector4 c2, float min_fuz = 0, float max_fuz = 10, float fuzziness = 0.1f, byte mode = 1)
+        private static double colorclose(int R, int G, int B, Vector4 c2, float min_fuzz = 0.5f, float max_fuzz = 0.1f, byte mode = 1)
         {
+            const double max_color_distance = 180f;
+
             Vector4 c1 = rgbToHSV(R, G, B);
             double delta = Math.Min(Math.Abs(c1.X - c2.X), 360 - Math.Abs(c1.X - c2.X));
 
             if (mode == 3)
             {
-                double dh = delta / 180.0f;
+                delta = delta / max_color_distance;
                 double ds = Math.Abs(c1.Y - c2.Y);
                 double dv = Math.Abs(c1.Z - c2.Z) / 255.0f;
-                double distance = Math.Sqrt(dh * dh + ds * ds + dv * dv);
-                delta = distance / fuzziness;
-                if (delta <= min_fuz / 25.5f) return 1;
-                if (delta >= max_fuz / 25.5f) return 0;
+                delta = Math.Sqrt(delta * delta + ds * ds + dv * dv);
+                delta = delta * max_color_distance;
+                if (delta <= min_fuzz * 51f) return 1;
+                if (delta >= max_fuzz * 51f) return 0;
+                delta = delta / max_color_distance;
             }
             if (mode == 2)
             {
-                if (delta <= min_fuz) return 1;
-                if (delta >= max_fuz) return 0;
-                delta = delta / 180f;
+                if (delta <= min_fuzz * 25.5f) return 1;
+                if (delta >= max_fuzz * 25.5f) return 0;
+                delta = delta / max_color_distance;
             }
             if (mode == 1)
             {
-                double dh = delta / 180.0f;
+                delta = delta / max_color_distance;
                 double ds = Math.Abs(c1.Y - c2.Y);
                 double dv = Math.Abs(c1.Z - c2.Z) / 255.0f;
-                double distance = Math.Sqrt(dh * dh + ds * ds + dv * dv);
-                delta = distance / fuzziness;
+                delta = Math.Sqrt(delta * delta + ds * ds + dv * dv);
+                delta = delta / max_fuzz;
             }
             else
             {
-                double maxDistance = fuzziness * 180.0f;
-                delta = delta / maxDistance;
+                delta = delta / max_color_distance;
+                delta = delta / max_fuzz;
             };
 
+            // ++ STANDARD LOGIC ++ //
+            if (delta < min_fuzz / max_fuzz) return 1;
             if (delta > 1) return 0;
             return 1 - delta;
+            // -- STANDARD LOGIC -- //
         }
 
         public static (int, int, byte[]) RemoveChromaKey2Bytes(Bitmap image,
-            int min_fuzzi, int max_fuzzi = 96,
+            byte min_treshold, byte max_treshold = 96,
             Color? rbga_mask = null, Color? transparentColor = null,
             bool? full_mask = false, byte mode = 2)
         {
             if (!rbga_mask.HasValue) rbga_mask = Color.FromArgb(0, 255, 0);
             if (!full_mask.HasValue) full_mask = false;
-            float fuzz = (float)max_fuzzi / 255f;
-            float min_fuzz = min_fuzzi / 10.0f;
-            float max_fuzz = max_fuzzi / 10.0f;
+            float min_fuzz = min_treshold / 255f;
+            float max_fuzz = max_treshold / 255f;
 
             Vector4 mask_color = rgbToHSV(rbga_mask.Value);
             int width = image.Width;
@@ -989,7 +1035,7 @@ namespace dkxce
                         rgba_foreground[(x * 4) + 3] = (byte)Math.Min((Math.Max(rgba_foreground[(x * 4) + 3] - mask * rbga_mask.Value.A, 0) + mask * transparentColor.Value.A), 255); //A
                     })
                 });
-                pixels.AsParallel().ForAll(pixel => pixel.MakeTransparent(colorclose(pixel.R, pixel.G, pixel.B, mask_color, min_fuzz, max_fuzz, fuzz, mode)));
+                pixels.AsParallel().ForAll(pixel => pixel.MakeTransparent(colorclose(pixel.R, pixel.G, pixel.B, mask_color, min_fuzz, max_fuzz, mode)));
             }
             else
             {
@@ -1009,21 +1055,21 @@ namespace dkxce
                         rgba_foreground[(x * 4) + 3] = (byte)Math.Min((Math.Max(rgba_foreground[(x * 4) + 3] - mask * 255, 0) + mask * 0), 255); //A
                     })
                 });
-                pixels.AsParallel().ForAll(pixel => pixel.MakeTransparent(colorclose(pixel.R, pixel.G, pixel.B, mask_color, min_fuzz, max_fuzz, fuzz, mode)));
+                pixels.AsParallel().ForAll(pixel => pixel.MakeTransparent(colorclose(pixel.R, pixel.G, pixel.B, mask_color, min_fuzz, max_fuzz, mode)));
             };
 
             return (width, height, rgba_foreground);
         }
 
         public static Bitmap RemoveChromaKey2Bitmap(Bitmap image,
-            int min_fuzz, int max_fuzz = 96,
+            byte min_treshold, byte max_treshold = 96,
             Color? rbga_mask = null, Color? transparentColor = null,
             bool? full_mask = false, byte mode = 2)
         {
             int width, height;
             byte[] rgba;
 
-            (width, height, rgba) = RemoveChromaKey2Bytes(image, min_fuzz, max_fuzz, rbga_mask, transparentColor, full_mask, mode);
+            (width, height, rgba) = RemoveChromaKey2Bytes(image, min_treshold, max_treshold, rbga_mask, transparentColor, full_mask, mode);
 
             Bitmap output = new Bitmap(width, height, PixelFormat.Format32bppArgb);
             BitmapData oData = output.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);

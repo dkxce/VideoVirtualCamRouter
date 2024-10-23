@@ -190,20 +190,20 @@ namespace VideoVirtualCamRouter
             {
                 pColBG.BackColor = colorDialog1.Color;
                 textColor.Text = colorDialog1.Color.ToString();
-                dkxce.RealCamToVirtualCamRouter.ChangeValue("background_color", colorDialog1.Color);
+                dkxce.Chromakeys.RealCamToVirtualCamRouter.ChangeValue("background_color", colorDialog1.Color);
             };
         }
 
         private void velBar_Scroll(object sender, EventArgs e)
         {
             velVal.Text = velBar.Value.ToString();
-            dkxce.RealCamToVirtualCamRouter.ChangeValue("velocity", velBar.Value);
+            dkxce.Chromakeys.RealCamToVirtualCamRouter.ChangeValue("min_treshold", (byte)velBar.Value);
         }
 
         private void trsBar_Scroll(object sender, EventArgs e)
         {
             trsVal.Text = trsBar.Value.ToString();
-            dkxce.RealCamToVirtualCamRouter.ChangeValue("treshold", trsBar.Value);
+            dkxce.Chromakeys.RealCamToVirtualCamRouter.ChangeValue("max_treshold", (byte)trsBar.Value);
         }
 
         private void ssBtn_Click(object sender, EventArgs e)
@@ -228,50 +228,50 @@ namespace VideoVirtualCamRouter
 
         private void Start()
         {
-            dkxce.RealCamToVirtualCamRouter.akvcamman_path = GetAkvCamManager();
-            dkxce.RealCamToVirtualCamRouter.virtualcam_fps = (int)fpsEdit.Value;
-            dkxce.RealCamToVirtualCamRouter.default_width = (int)wiEdit.Value;
-            dkxce.RealCamToVirtualCamRouter.default_height = (int)heEdit.Value;
-            dkxce.RealCamToVirtualCamRouter.realcam_num = ((CameraDevice)sourceCamsBox.SelectedItem).OpenCvId;
-            dkxce.RealCamToVirtualCamRouter.virtualcam_name = ((VirtualCameraDevice)destCamBox.SelectedItem).Name;
-            dkxce.RealCamToVirtualCamRouter.Start();
+            dkxce.Chromakeys.RealCamToVirtualCamRouter.akvcamman_path = GetAkvCamManager();
+            dkxce.Chromakeys.RealCamToVirtualCamRouter.virtualcam_fps = (int)fpsEdit.Value;
+            dkxce.Chromakeys.RealCamToVirtualCamRouter.default_width = (int)wiEdit.Value;
+            dkxce.Chromakeys.RealCamToVirtualCamRouter.default_height = (int)heEdit.Value;
+            dkxce.Chromakeys.RealCamToVirtualCamRouter.realcam_num = ((CameraDevice)sourceCamsBox.SelectedItem).OpenCvId;
+            dkxce.Chromakeys.RealCamToVirtualCamRouter.virtualcam_name = ((VirtualCameraDevice)destCamBox.SelectedItem).Name;
+            dkxce.Chromakeys.RealCamToVirtualCamRouter.Start();
         }
 
         private void Stop()
         {
-            dkxce.RealCamToVirtualCamRouter.Stop();
+            dkxce.Chromakeys.RealCamToVirtualCamRouter.Stop();
         }
 
         private void chromaBox_SelectedIndexChanged(object sender, EventArgs e)
         {
-            dkxce.RealCamToVirtualCamRouter.ChangeValue("channel", chromaBox.SelectedIndex);
+            dkxce.Chromakeys.RealCamToVirtualCamRouter.ChangeValue("channel", chromaBox.SelectedIndex);
         }
 
         private void chbCK_CheckedChanged(object sender, EventArgs e)
         {
-            dkxce.RealCamToVirtualCamRouter.ChangeValue("chromakey_remove", chbCK.Checked);
+            dkxce.Chromakeys.RealCamToVirtualCamRouter.ChangeValue("chromakey_remove", chbCK.Checked);
             
         }
 
         private void bgFile_TextChanged(object sender, EventArgs e)
         {
             if ((!string.IsNullOrEmpty(bgFile.Text)) && File.Exists(bgFile.Text))
-                dkxce.RealCamToVirtualCamRouter.ChangeValue("background", bgFile.Text);
+                dkxce.Chromakeys.RealCamToVirtualCamRouter.ChangeValue("background", bgFile.Text);
         }
 
         private void chbBG_CheckedChanged(object sender, EventArgs e)
         {
-            dkxce.RealCamToVirtualCamRouter.ChangeValue("use_background", chbBG.Checked);
+            dkxce.Chromakeys.RealCamToVirtualCamRouter.ChangeValue("use_background", chbBG.Checked);
         }
 
         private void chbOvl_CheckedChanged(object sender, EventArgs e)
         {
-            dkxce.RealCamToVirtualCamRouter.ChangeValue("ovelay", chbOvl.Checked);
+            dkxce.Chromakeys.RealCamToVirtualCamRouter.ChangeValue("ovelay", chbOvl.Checked);
         }
 
         private void timer1_Tick(object sender, EventArgs e)
         {
-            cSize.Text = $"{dkxce.RealCamToVirtualCamRouter.curr_wi} x {dkxce.RealCamToVirtualCamRouter.curr_he}";
+            cSize.Text = $"{dkxce.Chromakeys.RealCamToVirtualCamRouter.curr_wi} x {dkxce.Chromakeys.RealCamToVirtualCamRouter.curr_he}";
         }
 
         private void button3_Click(object sender, EventArgs e)
@@ -312,7 +312,7 @@ namespace VideoVirtualCamRouter
 
         private void chbPreview_CheckedChanged(object sender, EventArgs e)
         {
-            dkxce.RealCamToVirtualCamRouter.ChangeValue("use_preview", chbPreview.Checked);
+            dkxce.Chromakeys.RealCamToVirtualCamRouter.ChangeValue("use_preview", chbPreview.Checked);
             timer2.Interval = (int)(1000 / fpsEdit.Value);
             timer2.Enabled = chbMJpeg.Enabled = chbPreview.Checked;
             if (!chbPreview.Checked && previewBox.Image != null)
@@ -329,7 +329,7 @@ namespace VideoVirtualCamRouter
 
             try
             {
-                Image img = dkxce.RealCamToVirtualCamRouter.GetPreview();
+                Image img = dkxce.Chromakeys.RealCamToVirtualCamRouter.GetPreview();
                 if (img != null) img = (Image)img.Clone();
                 previewBox.Image = img;
 
@@ -389,12 +389,12 @@ namespace VideoVirtualCamRouter
 
         private void chbUVC_CheckedChanged(object sender, EventArgs e)
         {
-            dkxce.RealCamToVirtualCamRouter.ChangeValue("use_virtcam", chbUVC.Checked); 
+            dkxce.Chromakeys.RealCamToVirtualCamRouter.ChangeValue("use_virtcam", chbUVC.Checked); 
         }
 
         private void methBox_SelectedIndexChanged(object sender, EventArgs e)
         {
-            dkxce.RealCamToVirtualCamRouter.ChangeValue("method", methBox.SelectedIndex);
+            dkxce.Chromakeys.RealCamToVirtualCamRouter.ChangeValue("method", methBox.SelectedIndex);
             panel2.Visible = label16.Visible = button5.Visible = methBox.SelectedIndex > 0;
             chromaBox.Enabled = methBox.SelectedIndex == 0;
         }
@@ -405,7 +405,7 @@ namespace VideoVirtualCamRouter
             if (colorDialog1.ShowDialog() == DialogResult.OK)
             {
                 panel2.BackColor = colorDialog1.Color;
-                dkxce.RealCamToVirtualCamRouter.ChangeValue("ycbcr_color", colorDialog1.Color.ToArgb());
+                dkxce.Chromakeys.RealCamToVirtualCamRouter.ChangeValue("ycbcr_color", colorDialog1.Color.ToArgb());
             };
         }
     }
