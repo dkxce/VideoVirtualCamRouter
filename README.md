@@ -5,3 +5,7 @@ Requires installed [akvirtualcamera](https://github.com/webcamoid/akvirtualcamer
 
 <img src="sample_form.png"/>           
 
+#chromakey #remover #algo     
+real-time chromakey remover    
+video chromakey remover   
+
