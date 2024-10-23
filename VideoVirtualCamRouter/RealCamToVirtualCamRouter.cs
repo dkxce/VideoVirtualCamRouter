@@ -228,6 +228,18 @@ namespace dkxce
                 {
                     if (use_method == 1)
                         (width, height, raw_data) = YCbCrChromakeyRemover.RemoveChromaKey2Bytes(img, chromakey_velocity, chromakey_treshold, System.Drawing.Color.FromArgb(ycbcr_color));
+                    else if (use_method == 2)
+                        (width, height, raw_data) = RGB3DChromakeyRemover.RemoveChromaKey2Bytes(img, chromakey_treshold, System.Drawing.Color.FromArgb(ycbcr_color));
+                    else if (use_method == 3)
+                        (width, height, raw_data) = GrayScaleChromakeyRemover.RemoveChromaKey2Bytes(img, chromakey_treshold, System.Drawing.Color.FromArgb(ycbcr_color));
+                    else if (use_method == 4)
+                        (width, height, raw_data) = ColorMetricChromakeyRemover.RemoveChromaKey2Bytes(img, chromakey_treshold, System.Drawing.Color.FromArgb(ycbcr_color));
+                    else if (use_method == 5)
+                        (width, height, raw_data) = LABChromakeyRemover.RemoveChromaKey2Bytes(img, chromakey_treshold, System.Drawing.Color.FromArgb(ycbcr_color), null, false, 0);
+                    else if (use_method == 6)
+                        (width, height, raw_data) = LABChromakeyRemover.RemoveChromaKey2Bytes(img, chromakey_treshold, System.Drawing.Color.FromArgb(ycbcr_color), null, false, 2);
+                    else if (use_method == 7)
+                        (width, height, raw_data) = LABChromakeyRemover.RemoveChromaKey2Bytes(img, chromakey_treshold, System.Drawing.Color.FromArgb(ycbcr_color), null, false, 3);
                     else
                         (width, height, raw_data) = RGBChromakeyRemover.RemoveChromaKey2Bytes(img, chromakey_velocity, chromakey_treshold, chromakey_channel);                    
                 }

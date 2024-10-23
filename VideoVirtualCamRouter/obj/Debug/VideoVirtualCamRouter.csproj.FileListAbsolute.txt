@@ -33,3 +33,5 @@ C:\Users\dkxce\source\repos\VideoVirtualCamRouter\VideoVirtualCamRouter\obj\Debu
 C:\Users\dkxce\source\repos\VideoVirtualCamRouter\VideoVirtualCamRouter\obj\Debug\VideoVirtualCamRouter.exe
 C:\Users\dkxce\source\repos\VideoVirtualCamRouter\VideoVirtualCamRouter\obj\Debug\VideoVirtualCamRouter.pdb
 C:\Users\dkxce\source\repos\VideoVirtualCamRouter\VideoVirtualCamRouter\obj\Debug\VideoVirtualCamRouter.MainForm.resources
+C:\Users\dkxce\source\repos\VideoVirtualCamRouter\VideoVirtualCamRouter\bin\Debug\ColorMine.dll
+C:\Users\dkxce\source\repos\VideoVirtualCamRouter\VideoVirtualCamRouter\bin\Debug\ColorMine.pdb

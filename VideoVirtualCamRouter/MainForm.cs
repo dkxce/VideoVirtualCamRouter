@@ -7,6 +7,8 @@ using System.Windows.Forms;
 using Microsoft.Win32;
 using System.Security.Principal;
 using System.Threading;
+using System.Numerics;
+using dkxce;
 
 namespace VideoVirtualCamRouter
 {
@@ -393,8 +395,8 @@ namespace VideoVirtualCamRouter
         private void methBox_SelectedIndexChanged(object sender, EventArgs e)
         {
             dkxce.RealCamToVirtualCamRouter.ChangeValue("method", methBox.SelectedIndex);
-            panel2.Visible = label16.Visible = button5.Visible = methBox.SelectedIndex == 1;
-            chromaBox.Enabled = methBox.SelectedIndex != 1;
+            panel2.Visible = label16.Visible = button5.Visible = methBox.SelectedIndex > 0;
+            chromaBox.Enabled = methBox.SelectedIndex == 0;
         }
 
         private void button5_Click(object sender, EventArgs e)

@@ -33,3 +33,5 @@ C:\Users\dkxce\source\repos\VideoVirtualCamRouter\VideoVirtualCamRouter\obj\Rele
 C:\Users\dkxce\source\repos\VideoVirtualCamRouter\VideoVirtualCamRouter\obj\Release\VideoVir.9CF4EF49.Up2Date
 C:\Users\dkxce\source\repos\VideoVirtualCamRouter\VideoVirtualCamRouter\obj\Release\VideoVirtualCamRouter.exe
 C:\Users\dkxce\source\repos\VideoVirtualCamRouter\VideoVirtualCamRouter\obj\Release\VideoVirtualCamRouter.pdb
+C:\Users\dkxce\source\repos\VideoVirtualCamRouter\VideoVirtualCamRouter\bin\Release\ColorMine.dll
+C:\Users\dkxce\source\repos\VideoVirtualCamRouter\VideoVirtualCamRouter\bin\Release\ColorMine.pdb

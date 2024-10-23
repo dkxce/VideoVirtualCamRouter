@@ -629,7 +629,13 @@
             this.methBox.FormattingEnabled = true;
             this.methBox.Items.AddRange(new object[] {
             "RGB",
-            "YCbCr"});
+            "YCbCr",
+            "RGB 3D",
+            "Grayscale",
+            "Colour metric",
+            "ΔE (CIE 1976)",
+            "ΔE (CIE 2000)",
+            "ΔE (CMC)"});
             this.methBox.Location = new System.Drawing.Point(347, 228);
             this.methBox.Name = "methBox";
             this.methBox.Size = new System.Drawing.Size(104, 24);
@@ -670,7 +676,7 @@
             // label16
             // 
             this.label16.AutoSize = true;
-            this.label16.Location = new System.Drawing.Point(457, 232);
+            this.label16.Location = new System.Drawing.Point(459, 232);
             this.label16.Name = "label16";
             this.label16.Size = new System.Drawing.Size(78, 16);
             this.label16.TabIndex = 43;
