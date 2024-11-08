@@ -17,6 +17,7 @@ namespace VideoVirtualCamRouter
         private bool start_state = false;
         private MJPEGServer srvr;
         private bool tickedOk = true;
+        private bool animated = true;
 
         public MainForm()
         {
@@ -31,7 +32,20 @@ namespace VideoVirtualCamRouter
             ReloadBackgroundImage();
 
             if (destCamBox.Items.Count > 0) button3.Enabled = false;
-            methBox.SelectedIndex = 1;
+            methBox.SelectedIndex = 1;            
+        }
+
+        void Animate(PictureBox pictureBox, bool animate)
+        {
+            try
+            {
+                var animateMethod = typeof(PictureBox).GetMethod("Animate",
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance,
+                    null, new Type[] { typeof(bool) }, null);
+                animateMethod.Invoke(pictureBox, new object[] { animate });
+                pictureBox.Enabled = animate;
+            }
+            catch { };
         }
 
         public static bool IsAdministrator()
@@ -167,7 +181,10 @@ namespace VideoVirtualCamRouter
 
         private void ReloadBackgroundImage()
         {
-            try { bgImage.Image = Image.FromFile(bgFile.Text); } catch { };
+            try { 
+                bgImage.Image = Image.FromFile(bgFile.Text);
+                Animate(bgImage, animated = true);
+            } catch { };
         }
 
         private void button1_Click(object sender, EventArgs e)
@@ -178,7 +195,7 @@ namespace VideoVirtualCamRouter
             if(openFileDialog.ShowDialog() == DialogResult.OK)
             {
                 bgFile.Text = openFileDialog.FileName;
-                ReloadBackgroundImage();
+                ReloadBackgroundImage();                
             };
             openFileDialog.Dispose();
         }
@@ -407,6 +424,16 @@ namespace VideoVirtualCamRouter
                 panel2.BackColor = colorDialog1.Color;
                 dkxce.Chromakeys.RealCamToVirtualCamRouter.ChangeValue("ycbcr_color", colorDialog1.Color.ToArgb());
             };
+        }
+
+        private void bgImage_Click(object sender, EventArgs e)
+        {
+            Animate(bgImage, animated = !animated);
+        }
+
+        private void delayEdit_ValueChanged(object sender, EventArgs e)
+        {
+            dkxce.Chromakeys.RealCamToVirtualCamRouter.ChangeValue("background_delay", (int)delayEdit.Value);
         }
     }
 }

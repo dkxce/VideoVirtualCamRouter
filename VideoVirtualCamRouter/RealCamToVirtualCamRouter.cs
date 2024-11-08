@@ -21,6 +21,7 @@ using OpenCvSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp;
+using VideoVirtualCamRouter;
 
 namespace dkxce.Chromakeys
 {
@@ -53,6 +54,7 @@ namespace dkxce.Chromakeys
         public static bool use_virtcam = true;
         public static int use_method = 0;
         public static int ycbcr_color = -9109505;
+        public static int background_delay = 0;
         public static System.Drawing.Color background_color = System.Drawing.Color.Black;
 
         public static bool chromakey_remove = false;
@@ -85,6 +87,7 @@ namespace dkxce.Chromakeys
         public static void ChangeValue(string name, object value)
         {
             if (string.IsNullOrEmpty(name)) return;
+            if (name == "background_delay") GifBackground.FrameDelay = background_delay = (int)value;
             if (name == "ycbcr_color") ycbcr_color = (int)value;
             if (name == "method") use_method = (int)value;
             if (name == "use_virtcam") use_virtcam = (bool)value;
@@ -167,9 +170,10 @@ namespace dkxce.Chromakeys
         private static void RouteThread(object wihe)
         {
             int width = curr_wi = ((int[])wihe)[0];
-            int height = curr_he = ((int[])wihe)[1];            
+            int height = curr_he = ((int[])wihe)[1];
 
             // Init & Resize Background Image
+            GifBackground.ResetNextFrame(false);
             background_mutex.WaitOne();
             if ((!string.IsNullOrEmpty(background_image)) && File.Exists(background_image))
             {
@@ -264,12 +268,18 @@ namespace dkxce.Chromakeys
                 img.Dispose();
 
                 // Get Result Frame
-                SixLabors.ImageSharp.Image <Rgb24> result_frame = null;
+                SixLabors.ImageSharp.Image<Rgb24> result_frame = null;
                 background_mutex.WaitOne();
+
                 if (use_background && background != null)
-                    result_frame = background.CloneAs<Rgb24>();
+                {
+                    if (background.Frames.Count > 1)
+                        result_frame = GifBackground.GetNextFrame(background).CloneAs<Rgb24>();
+                    else
+                        result_frame = background.CloneAs<Rgb24>();
+                }
                 else
-                    result_frame = new SixLabors.ImageSharp.Image<Rgb24>(curr_wi, curr_he, 
+                    result_frame = new SixLabors.ImageSharp.Image<Rgb24>(curr_wi, curr_he,
                         SixLabors.ImageSharp.Color.FromRgba(background_color.R, background_color.G, background_color.B, background_color.A));
                 background_mutex.ReleaseMutex();
 

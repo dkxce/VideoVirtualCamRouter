@@ -83,6 +83,8 @@
             this.panel2 = new System.Windows.Forms.Panel();
             this.button5 = new System.Windows.Forms.Button();
             this.label16 = new System.Windows.Forms.Label();
+            this.delayEdit = new System.Windows.Forms.NumericUpDown();
+            this.label17 = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.bgImage)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.velBar)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.trsBar)).BeginInit();
@@ -93,6 +95,7 @@
             this.statusStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.previewBox)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.mjPort)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.delayEdit)).BeginInit();
             this.SuspendLayout();
             // 
             // label3
@@ -125,6 +128,7 @@
             this.bgImage.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.bgImage.TabIndex = 6;
             this.bgImage.TabStop = false;
+            this.bgImage.Click += new System.EventHandler(this.bgImage_Click);
             // 
             // bgFile
             // 
@@ -687,11 +691,36 @@
             this.label16.Text = "Mask Color:";
             this.label16.Visible = false;
             // 
+            // delayEdit
+            // 
+            this.delayEdit.Location = new System.Drawing.Point(536, 191);
+            this.delayEdit.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.delayEdit.Maximum = new decimal(new int[] {
+            10000,
+            0,
+            0,
+            0});
+            this.delayEdit.Name = "delayEdit";
+            this.delayEdit.Size = new System.Drawing.Size(79, 22);
+            this.delayEdit.TabIndex = 44;
+            this.delayEdit.ValueChanged += new System.EventHandler(this.delayEdit_ValueChanged);
+            // 
+            // label17
+            // 
+            this.label17.AutoSize = true;
+            this.label17.Location = new System.Drawing.Point(442, 193);
+            this.label17.Name = "label17";
+            this.label17.Size = new System.Drawing.Size(75, 16);
+            this.label17.TabIndex = 45;
+            this.label17.Text = "Delay (ms):";
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1261, 425);
+            this.Controls.Add(this.label17);
+            this.Controls.Add(this.delayEdit);
             this.Controls.Add(this.label16);
             this.Controls.Add(this.button5);
             this.Controls.Add(this.panel2);
@@ -749,6 +778,7 @@
             this.statusStrip1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.previewBox)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.mjPort)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.delayEdit)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -808,6 +838,8 @@
         private System.Windows.Forms.Panel panel2;
         private System.Windows.Forms.Button button5;
         private System.Windows.Forms.Label label16;
+        private System.Windows.Forms.NumericUpDown delayEdit;
+        private System.Windows.Forms.Label label17;
     }
 }
 
